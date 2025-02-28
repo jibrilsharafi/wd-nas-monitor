@@ -1,0 +1,22 @@
+<system>
+    <name>MyNAS</name>
+    <model>WD My Cloud EX2 Ultra</model>
+    <firmware_version>2.31.204</firmware_version>
+    <serial>WD1234567890</serial>
+    <cpu_usage>25</cpu_usage>
+    <memory>
+        <total>512000000</total>
+        <used>256000000</used>
+    </memory>
+    <uptime>1 days, 12:34:56</uptime>
+    <temperature>42</temperature>
+    <network>
+        <eth0>
+            <ipaddr>192.168.1.100</ipaddr>
+            <netmask>255.255.255.0</netmask>
+            <gateway>192.168.1.1</gateway>
+            <mac_addr>00:11:22:33:44:55</mac_addr>
+            <status>Connected</status>
+        </eth0>
+    </network>
+</system>

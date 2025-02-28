@@ -1,0 +1,361 @@
+{
+	"info": {
+		"_postman_id": "c698cafb-bdea-44f5-aa3c-8cab63dd0cab",
+		"name": "WD EX2 Ultra",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "24911951"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Save the authentication cookie for subsequent requests\r",
+							"var cookieJar = pm.cookies.jar();\r",
+							"pm.test(\"Save auth cookies\", function() {\r",
+							"    // Get all cookies from the response\r",
+							"    var cookies = pm.cookies.all();\r",
+							"    // Store them in environment variables or directly use them in subsequent requests\r",
+							"    cookies.forEach(function(cookie) {\r",
+							"        pm.environment.set(cookie.name, cookie.value);\r",
+							"    });\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"jibril\",\r\n    \"password\": \"U2VncmV0aVBlcnNvbmFsaTIwMjIh\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{ip_address}}:8543/nas/v1/auth",
+					"protocol": "https",
+					"host": [
+						"{{ip_address}}"
+					],
+					"port": "8543",
+					"path": [
+						"nas",
+						"v1",
+						"auth"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Status",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cookie",
+						"value": "fe97238703cba={{fe97238703cba}}; ge41881ed8d9r={{ge41881ed8d9r}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "cmd",
+							"value": "resource",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://{{ip_address}}/cgi-bin/status_mgr.cgi",
+					"protocol": "http",
+					"host": [
+						"{{ip_address}}"
+					],
+					"path": [
+						"cgi-bin",
+						"status_mgr.cgi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "System",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cookie",
+						"value": "fe97238703cba={{fe97238703cba}}; ge41881ed8d9r={{ge41881ed8d9r}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "page",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "rp",
+							"value": "10",
+							"type": "text"
+						},
+						{
+							"key": "sortname",
+							"value": "",
+							"type": "text"
+						},
+						{
+							"key": "sortorder",
+							"value": "asc",
+							"type": "text"
+						},
+						{
+							"key": "query",
+							"value": "",
+							"type": "text"
+						},
+						{
+							"key": "qtype",
+							"value": "",
+							"type": "text"
+						},
+						{
+							"key": "f_field",
+							"value": "false",
+							"type": "text"
+						},
+						{
+							"key": "cmd",
+							"value": "cgi_log_system",
+							"type": "text"
+						},
+						{
+							"key": "user",
+							"value": "",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://{{ip_address}}/cgi-bin/system_mgr.cgi",
+					"protocol": "http",
+					"host": [
+						"{{ip_address}}"
+					],
+					"path": [
+						"cgi-bin",
+						"system_mgr.cgi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Firmware",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cookie",
+						"value": "fe97238703cba={{fe97238703cba}}; ge41881ed8d9r={{ge41881ed8d9r}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "cmd",
+							"value": "get_firm_v_xml",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://{{ip_address}}/cgi-bin/system_mgr.cgi",
+					"protocol": "http",
+					"host": [
+						"{{ip_address}}"
+					],
+					"path": [
+						"cgi-bin",
+						"system_mgr.cgi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Home",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cookie",
+						"value": "fe97238703cba={{fe97238703cba}}; ge41881ed8d9r={{ge41881ed8d9r}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "cmd",
+							"value": "2",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://{{ip_address}}/cgi-bin/home_mgr.cgi",
+					"protocol": "http",
+					"host": [
+						"{{ip_address}}"
+					],
+					"path": [
+						"cgi-bin",
+						"home_mgr.cgi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Smart data",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cookie",
+						"value": "fe97238703cba={{fe97238703cba}}; ge41881ed8d9r={{ge41881ed8d9r}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "cmd",
+							"value": "2",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "page",
+							"value": "1",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "rp",
+							"value": "300",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "sortname",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "sortorder",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "query",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "qtype",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "f_field",
+							"value": "sdb",
+							"type": "text"
+						},
+						{
+							"key": "cmd",
+							"value": "cgi_Status_SMART_HD_Info",
+							"type": "text"
+						},
+						{
+							"key": "user",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "http://{{ip_address}}/cgi-bin/smart.cgi",
+					"protocol": "http",
+					"host": [
+						"{{ip_address}}"
+					],
+					"path": [
+						"cgi-bin",
+						"smart.cgi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "System info",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cookie",
+						"value": "fe97238703cba={{fe97238703cba}}; ge41881ed8d9r={{ge41881ed8d9r}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://{{ip_address}}/xml/sysinfo.xml?id=1740754609",
+					"protocol": "http",
+					"host": [
+						"{{ip_address}}"
+					],
+					"path": [
+						"xml",
+						"sysinfo.xml"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "1740754609"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

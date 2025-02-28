@@ -1,0 +1,24 @@
+{
+    "page": "1",
+    "total": 2,
+    "rows": [
+        {
+            "id": "1",
+            "cell": [
+                "1",
+                "2023-07-15 12:34:56",
+                "INFO",
+                "System boot completed"
+            ]
+        },
+        {
+            "id": "2",
+            "cell": [
+                "2",
+                "2023-07-15 12:35:10",
+                "INFO",
+                "Network initialization completed"
+            ]
+        }
+    ]
+}

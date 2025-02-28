@@ -1,0 +1,34 @@
+<home_info>
+    <volume id="vol_1">
+        <capacity>1000000000000</capacity>
+        <used>500000000000</used>
+        <free>500000000000</free>
+        <usage>50</usage>
+    </volume>
+    <disks>
+        <disk id="sda">
+            <name>Disk 1</name>
+            <vendor>WDC</vendor>
+            <model>WD10EFRX-68FYTN0</model>
+            <sn>WD-XYZ123456789</sn>
+            <size>1000000000000</size>
+            <temp>40</temp>
+            <healthy>1</healthy>
+            <smart>
+                <result>PASS</result>
+            </smart>
+        </disk>
+        <disk id="sdb">
+            <name>Disk 2</name>
+            <vendor>WDC</vendor>
+            <model>WD10EFRX-68FYTN0</model>
+            <sn>WD-XYZ987654321</sn>
+            <size>1000000000000</size>
+            <temp>42</temp>
+            <healthy>1</healthy>
+            <smart>
+                <result>PASS</result>
+            </smart>
+        </disk>
+    </disks>
+</home_info>
