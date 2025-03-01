@@ -26,7 +26,7 @@ def load_config() -> Dict[str, Any]:
         "username": os.environ.get("WDNAS_USERNAME", ""),
         "password": os.environ.get("WDNAS_PASSWORD", ""),
         "http_port": int(os.environ.get("WDNAS_HTTP_PORT", "80")),
-        "https_port": int(os.environ.get("WDNAS_HTTPS_PORT", "8443")),
+        "https_port": int(os.environ.get("WDNAS_HTTPS_PORT", "8543")),
     }
 
 
@@ -57,7 +57,7 @@ def client(config: Dict[str, Any]) -> WDNasClient:
         username=config["username"],
         password=config["password"],
         http_port=config.get("http_port", 80),
-        https_port=config.get("https_port", 8443),
+        https_port=config.get("https_port", 8543),
         verify_ssl=config.get("verify_ssl", False),
     )
 

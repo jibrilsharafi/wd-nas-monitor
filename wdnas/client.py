@@ -4,15 +4,13 @@ import base64
 import json
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import requests
 import xmltodict
 from requests.exceptions import RequestException
 
 from .exceptions import AuthenticationError, ConnectionError, ParseError
-from .models.disk import DiskInfo, SmartInfo
 
 TIMEOUT_REQUESTS = 10
 
@@ -102,7 +100,7 @@ class WDNasClient:
             raise ConnectionError(f"Failed to connect to NAS: {str(e)}")
 
     def _post_cgi(
-        self, cgi_path: str, data: Dict[str, str], json_response: bool = False
+        self, cgi_path: str, form_data: Dict[str, str], json_response: bool = False
     ) -> Dict[str, Any]:
         """Send a POST request to a CGI endpoint and parse the XML response.
 
@@ -121,10 +119,16 @@ class WDNasClient:
             raise AuthenticationError("You must authenticate before making API calls")
 
         try:
-            # Use the http_base_url for CGI requests
-            url = f"{self.http_base_url}{cgi_path}"
+            # Use the https_base_url for CGI requests
+            url = f"{self.https_base_url}{cgi_path}"
+            headers = {"Content-Type": "application/x-www-form-urlencoded"} # All requests for WD NAS use this
+            
             response = self.session.post(
-                url, data=data, cookies=self._cookies, timeout=TIMEOUT_REQUESTS
+                url,
+                data=form_data,
+                headers=headers,
+                cookies=self._cookies,
+                timeout=TIMEOUT_REQUESTS,
             )
             response.raise_for_status()
 
@@ -232,7 +236,7 @@ class WDNasClient:
         Returns:
             Dict: Device information
         """
-        return self._post_cgi("/cgi-bin/status_mgr.cgi", {"cmd": "cgi_get_device_info"})
+        return self._post_cgi("/cgi-bin/system_mgr.cgi", {"cmd": "cgi_get_device_info"})
 
     def get_system_logs(self, max_pages: int = 10) -> List[Dict[str, List[Dict[str, Any]]]]:
         """Get system logs with pagination.
@@ -251,7 +255,7 @@ class WDNasClient:
                 "page": str(page),
                 "cmd": "cgi_log_system",
             }
-            response = self._post_cgi("/cgi-bin/system_mgr.cgi", data)
+            response = self._post_cgi("/cgi-bin/system_mgr.cgi", data, json_response=True)
 
             all_logs.append(response)
             if not response.get("rows"):
@@ -287,17 +291,17 @@ class WDNasClient:
             Dict: SMART information for the disk
         """
         disks_info: Dict[str, Dict[str, Any]] = {}
-        
-        LIST_DISKS = ["sda", "sdb"] # TODO: get this from the NAS
-        
+
+        LIST_DISKS = ["sda", "sdb"]  # TODO: get this from the NAS
+
         for disk_id in LIST_DISKS:
             data = {"f_field": disk_id, "cmd": "cgi_Status_SMART_HD_Info"}
             response = self._post_cgi("/cgi-bin/smart.cgi", data)
-            if not response["rows"].get("row"):
+            if response["rows"].get("row"):
                 disks_info[disk_id] = response
             else:
                 break
-            
+
         return disks_info
 
     def get_system_info(self) -> Dict[str, Any]:
@@ -324,6 +328,6 @@ class WDNasClient:
             "system_logs": self.get_system_logs(),
             "firmware_version": self.get_firmware_version(),
             "home_info": self.get_home_info(),
-            "disks_smart_info": self.get_disks_smart_info(), 
+            "disks_smart_info": self.get_disks_smart_info(),
             "system_info": self.get_system_info(),
         }

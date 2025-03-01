@@ -2,7 +2,7 @@
 
 import pytest
 from wdnas.devices.ex2 import EX2UltraDevice
-from wdnas.models.disk import DiskInfo
+from wdnas.models.disk import DiskInfo, SmartInfo
 
 
 class TestDiskInfo:
@@ -10,20 +10,22 @@ class TestDiskInfo:
 
     def test_get_disks(self, ex2_device: EX2UltraDevice) -> None:
         """Test retrieving disk information."""
+        # Make sure we have all data loaded
+        ex2_device.get_all_data()
+        
         disks = ex2_device.get_disks()
         
         # Should return a list with at least one disk
         assert isinstance(disks, list)
         
         # Skip test if no disks found in integration environment
-        if not disks:
-            pytest.skip("No disks found in test environment")
+        assert disks
             
         # Verify disk properties
         for disk in disks:
             assert isinstance(disk, DiskInfo)
-            # id might start with a number (like "1") in dictionary-based APIs
-            assert disk.id is not None and disk.id != ""
+            # name is the identifier in our implementation
+            assert disk.name is not None and disk.name != ""
             assert disk.size_bytes > 0
             assert disk.size_gb > 0
             
@@ -49,27 +51,38 @@ class TestDiskInfo:
             if disk.smart_info:
                 assert disk.smart_info.test_type
                 assert disk.smart_info.result
-                assert 0 <= disk.smart_info.percent <= 100
+                assert 0 <= disk.smart_info.percent <= 1.0  # percent is stored as float 0.0-1.0
 
     def test_get_disk_smart_details(self, ex2_device: EX2UltraDevice) -> None:
         """Test retrieving SMART information for a disk."""
-        # First get available disks
+        # First get all data
+        ex2_device.get_all_data()
+        
+        # Then get available disks
         disks = ex2_device.get_disks()
         
-        if not disks:
-            pytest.skip("No disks available to test SMART info")
+        assert disks
             
-        # Get SMART info for the first disk
-        first_disk_id = disks[0].id
-        smart_info = ex2_device.get_disk_smart_details(first_disk_id)
+        smart_info = disks[0].smart_info
         
-        # Should return a dict with SMART attributes
-        assert isinstance(smart_info, dict)
+        # Should return a dict with SMART details
+        assert isinstance(smart_info, SmartInfo)
         
         # Skip detailed checks if no SMART data available
-        if not smart_info or "rows" not in smart_info or not smart_info["rows"]:
-            pytest.skip("No SMART data available for testing")
+        assert smart_info
         
-        # Verify format of a row if present
-        first_row = smart_info["rows"][0]
-        assert "_id" in first_row or "cell" in first_row  # Allow either format
+        # Check for expected SMART fields
+        assert smart_info.percent is not None
+        assert smart_info.result is not None
+        assert smart_info.test_type is not None
+        assert smart_info.date is not None
+        assert isinstance(smart_info.attributes, list)
+        
+        # Check an attribute if available
+        if smart_info.attributes:
+            attr = smart_info.attributes[0]
+            assert attr.id is not None
+            assert attr.name is not None
+            assert attr.value is not None
+            assert attr.worst is not None
+            assert attr.threshold is not None
