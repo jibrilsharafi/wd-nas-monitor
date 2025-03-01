@@ -1,0 +1,9 @@
+# Example configuration file for integration tests
+# Copy this file to "config.yaml" and update with your actual values
+
+host: "192.168.1.100"  # IP address or hostname of your WD NAS
+username: "admin"      # Your admin username
+password: "password"   # Your admin password
+http_port: 80          # HTTP port (default: 80)
+https_port: 8543       # HTTPS port (default: 8543)
+verify_ssl: false      # Whether to verify SSL certificates. Usually self-signed certificates will fail

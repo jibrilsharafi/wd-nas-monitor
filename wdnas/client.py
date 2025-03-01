@@ -1,6 +1,7 @@
 """Core client for interacting with Western Digital NAS devices."""
 
 import base64
+from datetime import datetime
 import json
 import logging
 import re
@@ -11,7 +12,7 @@ import requests
 from requests.exceptions import RequestException
 
 from .exceptions import AuthenticationError, ConnectionError, ParseError
-from .models.disk import DiskInfo
+from .models.disk import DiskInfo, SmartInfo
 
 
 class WDNasClient:
@@ -24,7 +25,7 @@ class WDNasClient:
         password: str,
         http_port: int = 80,
         https_port: int = 8543,
-        verify_ssl: bool = True,
+        verify_ssl: bool = False,
     ):
         """Initialize the WD NAS client.
 
@@ -79,7 +80,7 @@ class WDNasClient:
             # Disable SSL verification since the NAS often uses a self-signed certificate
             # In production, you might want to provide the correct certificate instead
             response = self.session.post(
-                f"{self.https_base_url}/nas/v1/auth", json=auth_data, timeout=10, verify=False
+                f"{self.https_base_url}/nas/v1/auth", json=auth_data, timeout=10
             )
 
             if response.status_code == 200:
@@ -118,9 +119,7 @@ class WDNasClient:
         try:
             # Use the http_base_url for CGI requests
             url = f"{self.http_base_url}{cgi_path}"
-            response = self.session.post(
-                url, data=data, cookies=self._cookies, timeout=10, verify=False
-            )
+            response = self.session.post(url, data=data, cookies=self._cookies, timeout=10)
             response.raise_for_status()
             return str(response.text)
         except requests.HTTPError as e:
@@ -146,9 +145,7 @@ class WDNasClient:
 
         try:
             url = f"{self.http_base_url}{path}"
-            response = self.session.post(
-                url, cookies=self._cookies, params=params, timeout=10, verify=False
-            )
+            response = self.session.post(url, cookies=self._cookies, params=params, timeout=10)
             response.raise_for_status()
             return str(response.text)
         except requests.HTTPError as e:
@@ -178,6 +175,21 @@ class WDNasClient:
             self.logger.debug(f"Raw response: {xml_text[:200]}...")
             raise ParseError(f"Failed to parse XML response: {str(e)}")
 
+    def parse_xml_response_as_dict(self, xml_text: str) -> Dict[str, Any]:
+        """Parse an XML response and convert it to a dictionary.
+
+        Args:
+            xml_text: The XML text to parse
+
+        Returns:
+            Dict: The parsed XML as a dictionary
+
+        Raises:
+            ParseError: If the response couldn't be parsed as XML
+        """
+        root = self.parse_xml_response(xml_text)
+        return self._xml_to_dict(root)
+
     def parse_json_response(self, json_text: str) -> Dict[str, Any]:
         """Parse a JSON response.
 
@@ -205,9 +217,7 @@ class WDNasClient:
             Dict: System status information
         """
         response = self._post_cgi("/cgi-bin/status_mgr.cgi", {"cmd": "resource"})
-        xml_root = self.parse_xml_response(response)
-        # Convert XML to dictionary
-        return self._xml_to_dict(xml_root)
+        return self.parse_xml_response_as_dict(response)
 
     def _xml_to_dict(self, element: ET.Element) -> Dict[str, Any]:
         """Convert an XML element to a dictionary.
@@ -219,11 +229,34 @@ class WDNasClient:
             Dict: The converted dictionary
         """
         result: Dict[str, Any] = {}
+
+        # Add attributes if present
+        if element.attrib:
+            result.update(element.attrib)
+
+        # Handle child elements
+        children_by_tag: Dict[str, Union[Any, List[Any]]] = {}
         for child in element:
-            if len(child) == 0:
-                result[child.tag] = child.text or ""
+            child_data = self._xml_to_dict(child)
+            if child.tag in children_by_tag:
+                # If we've seen this tag before, ensure it becomes a list
+                if isinstance(children_by_tag[child.tag], list):
+                    children_by_tag[child.tag].append(child_data)
+                else:
+                    children_by_tag[child.tag] = [children_by_tag[child.tag], child_data]
             else:
-                result[child.tag] = self._xml_to_dict(child)
+                children_by_tag[child.tag] = child_data
+
+        # Add all child data to result
+        result.update(children_by_tag)
+
+        # Handle element text
+        if element.text and element.text.strip():
+            if not result:  # If there are no children or attributes
+                result = {"text": element.text.strip()}
+            else:
+                result["text"] = element.text.strip()
+
         return result
 
     def get_system_logs(self) -> Dict[str, Any]:
@@ -246,23 +279,23 @@ class WDNasClient:
         response = self._post_cgi("/cgi-bin/system_mgr.cgi", data)
         return self.parse_json_response(response)
 
-    def get_firmware_version(self) -> ET.Element:
+    def get_firmware_version(self) -> Dict[str, Any]:
         """Get firmware version information.
 
         Returns:
-            ElementTree.Element: Firmware version information
+            Dict[str, Any]: Firmware version information as dictionary
         """
         response = self._post_cgi("/cgi-bin/system_mgr.cgi", {"cmd": "get_firm_v_xml"})
-        return self.parse_xml_response(response)
+        return self.parse_xml_response_as_dict(response)
 
-    def get_home_info(self) -> ET.Element:
+    def get_home_info(self) -> Dict[str, Any]:
         """Get home information.
 
         Returns:
-            ElementTree.Element: Home information
+            Dict[str, Any]: Home information as dictionary
         """
         response = self._post_cgi("/cgi-bin/home_mgr.cgi", {"cmd": "2"})
-        return self.parse_xml_response(response)
+        return self.parse_xml_response_as_dict(response)
 
     def get_disk_smart_info(self, disk_id: str) -> Dict[str, Any]:
         """Get SMART information for a disk.
@@ -277,18 +310,18 @@ class WDNasClient:
         response = self._post_cgi("/cgi-bin/smart.cgi", data)
         return self.parse_json_response(response)
 
-    def get_system_info(self) -> ET.Element:
+    def get_system_info(self) -> Dict[str, Any]:
         """Get detailed system information.
 
         Returns:
-            ElementTree.Element: System information
+            Dict[str, Any]: System information as dictionary
         """
         # The id parameter appears to be a timestamp or random number
         import time
 
         params = {"id": str(int(time.time()))}
         response = self._get_xml("/xml/sysinfo.xml", params)
-        return self.parse_xml_response(response)
+        return self.parse_xml_response_as_dict(response)
 
     def get_disks(self) -> List[DiskInfo]:
         """Get information about all disks in the NAS.
@@ -300,11 +333,131 @@ class WDNasClient:
             Various exceptions from underlying methods
         """
         # Extract disk information from home information
-        home_xml = self.get_home_info()
-        disks_xml = home_xml.findall(".//disk")
+        home_data = self.get_home_info()
 
-        if not disks_xml:
+        # Navigate to disks in the dictionary structure
+        # The structure might be {'disks': {'disk': [...]}} or something with direct 'disk' key
+        disks_data = None
+        if "disks" in home_data and "disk" in home_data["disks"]:
+            disks_data = home_data["disks"]["disk"]
+        elif "disk" in home_data:
+            disks_data = home_data["disk"]
+
+        # Check if we found any disks
+        if not disks_data:
             self.logger.warning("No disks found in home information")
             return []
 
-        return [DiskInfo.from_xml(disk_xml) for disk_xml in disks_xml]
+        # If there's only one disk, make sure it's in a list
+        if not isinstance(disks_data, list):
+            disks_data = [disks_data]
+
+        result = []
+        for disk_data in disks_data:
+            # Create DiskInfo from dictionary data
+            disk_info = self._create_disk_info_from_dict(disk_data)
+            result.append(disk_info)
+
+        return result
+
+    def _get_nested_value(self, data: Dict[str, Any], key: str, default: Any = None) -> Any:
+        """Extract a value from possibly nested dictionary structure.
+        
+        Args:
+            data: Dictionary to extract from
+            key: Key to extract
+            default: Default value if key not found
+            
+        Returns:
+            The value at the key, or default if not found
+        """
+        if key not in data:
+            return default
+            
+        value = data[key]
+        # If value is a dict with just a 'text' key, return the text value
+        if isinstance(value, dict) and "text" in value and len(value) == 1:
+            return value["text"]
+        return value
+
+    def _create_disk_info_from_dict(self, disk_data: Dict[str, Any]) -> DiskInfo:
+        """Create a DiskInfo object from dictionary data.
+
+        Args:
+            disk_data: Dictionary containing disk information
+
+        Returns:
+            DiskInfo: A disk information object
+        """
+        # Extract smart info if available
+        smart_info = None
+        if "smart" in disk_data:
+            smart_data = disk_data["smart"]
+            result_raw = self._get_nested_value(smart_data, "result", "Unknown")
+            test_type = self._get_nested_value(smart_data, "test", "unknown")
+            percent_str = self._get_nested_value(smart_data, "percent", "0")
+            
+            smart_info = SmartInfo(
+                test_type=test_type,
+                result=self._extract_smart_result(result_raw),
+                percent=int(percent_str),
+                last_test_date=self._extract_smart_date(result_raw),
+            )
+
+        # Get values with helper method that handles nested structure
+        return DiskInfo(
+            id=disk_data.get("id", ""),  # id is typically an attribute, not nested
+            name=self._get_nested_value(disk_data, "name", "Unknown"),
+            vendor=self._get_nested_value(disk_data, "vendor", "Unknown").strip(),
+            model=self._get_nested_value(disk_data, "model", "Unknown").strip(),
+            serial=self._get_nested_value(disk_data, "sn", "Unknown"),
+            size_bytes=int(self._get_nested_value(disk_data, "size", "0")),
+            temperature=int(self._get_nested_value(disk_data, "temp", "0")),
+            healthy=bool(int(self._get_nested_value(disk_data, "healthy", "0"))),
+            smart_status=smart_info.result if smart_info else "Unknown",
+            scsi_path=self._get_nested_value(disk_data, "scsi_path", ""),
+            connected=bool(int(self._get_nested_value(disk_data, "connected", "0"))),
+            revision=self._get_nested_value(disk_data, "rev", ""),
+            device_path=self._get_nested_value(disk_data, "dev", ""),
+            partition_count=int(self._get_nested_value(disk_data, "part_cnt", "0")),
+            allowed=bool(int(self._get_nested_value(disk_data, "allowed", "0"))),
+            raid_uuid=self._get_nested_value(disk_data, "raid_uuid", ""),
+            failed=bool(int(self._get_nested_value(disk_data, "failed", "0"))),
+            removable=bool(int(self._get_nested_value(disk_data, "removable", "0"))),
+            roaming=self._get_nested_value(disk_data, "roaming", ""),
+            over_temp=bool(int(self._get_nested_value(disk_data, "over_temp", "0"))),
+            sleep=bool(int(self._get_nested_value(disk_data, "sleep", "0"))),
+            smart_info=smart_info,
+        )
+
+    def _extract_smart_result(self, result_str: str) -> str:
+        """Extract the actual result from a SMART result string.
+
+        Args:
+            result_str: The SMART result string which may contain a date
+
+        Returns:
+            str: The clean result string
+        """
+        if "[" in result_str and "]" in result_str:
+            return result_str[: result_str.find("[")].strip()
+        return result_str
+
+    def _extract_smart_date(self, result_str: str) -> Optional[datetime]:
+        """Extract the date from a SMART result string.
+
+        Args:
+            result_str: The SMART result string which may contain a date
+
+        Returns:
+            Optional[datetime]: The extracted date or None
+        """
+        from datetime import datetime
+
+        if "[" in result_str and "]" in result_str:
+            try:
+                date_str = result_str[result_str.find("[") + 1 : result_str.find("]")]
+                return datetime.strptime(date_str, "%Y/%m/%d %H:%M:%S")
+            except ValueError:
+                pass
+        return None

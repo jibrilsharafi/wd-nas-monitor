@@ -1,10 +1,11 @@
 """Unit tests for data models."""
 
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 import pytest
 
-from wdnas.models.disk import DiskInfo
+from wdnas.models.disk import DiskInfo, SmartInfo
 from wdnas.models.system import SystemInfo
 
 
@@ -23,8 +24,22 @@ class TestDiskInfo:
             <temp>40</temp>
             <healthy>1</healthy>
             <smart>
-                <result>PASS</result>
+                <test>Short</test>
+                <result>Pass [2023/05/15 12:30:45]</result>
+                <percent>100</percent>
             </smart>
+            <scsi_path>/dev/scsi/host0/bus0/target0/lun0</scsi_path>
+            <connected>1</connected>
+            <rev>1.0</rev>
+            <dev>/dev/sda</dev>
+            <part_cnt>2</part_cnt>
+            <allowed>1</allowed>
+            <raid_uuid>12345678-abcd-ef12-3456-789abcdef123</raid_uuid>
+            <failed>0</failed>
+            <removable>0</removable>
+            <roaming>no</roaming>
+            <over_temp>0</over_temp>
+            <sleep>0</sleep>
         </disk>
         """
         xml_element = ET.fromstring(xml_str)
@@ -38,7 +53,28 @@ class TestDiskInfo:
         assert disk_info.size_bytes == 1000000000000
         assert disk_info.temperature == 40
         assert disk_info.healthy is True
-        assert disk_info.smart_status == "PASS"
+        assert disk_info.smart_status == "Pass"
+        
+        # New field assertions
+        assert disk_info.scsi_path == "/dev/scsi/host0/bus0/target0/lun0"
+        assert disk_info.connected is True
+        assert disk_info.revision == "1.0"
+        assert disk_info.device_path == "/dev/sda"
+        assert disk_info.partition_count == 2
+        assert disk_info.allowed is True
+        assert disk_info.raid_uuid == "12345678-abcd-ef12-3456-789abcdef123"
+        assert disk_info.failed is False
+        assert disk_info.removable is False
+        assert disk_info.roaming == "no"
+        assert disk_info.over_temp is False
+        assert disk_info.sleep is False
+        
+        # Smart info assertions
+        assert disk_info.smart_info is not None
+        assert disk_info.smart_info.test_type == "Short"
+        assert disk_info.smart_info.result == "Pass"
+        assert disk_info.smart_info.percent == 100
+        assert disk_info.smart_info.last_test_date == datetime(2023, 5, 15, 12, 30, 45)
 
     def test_from_xml_with_missing_data(self) -> None:
         """Test parsing disk info from incomplete XML."""
@@ -61,6 +97,21 @@ class TestDiskInfo:
         assert disk_info.temperature == 0
         assert disk_info.healthy is False
         assert disk_info.smart_status == "Unknown"
+        
+        # Default values for new fields
+        assert disk_info.scsi_path == ""
+        assert disk_info.connected is False
+        assert disk_info.revision == ""
+        assert disk_info.device_path == ""
+        assert disk_info.partition_count == 0
+        assert disk_info.allowed is False
+        assert disk_info.raid_uuid == ""
+        assert disk_info.failed is False
+        assert disk_info.removable is False
+        assert disk_info.roaming == ""
+        assert disk_info.over_temp is False
+        assert disk_info.sleep is False
+        assert disk_info.smart_info is None
 
     def test_size_gb_property(self) -> None:
         """Test size_gb property calculation."""
@@ -77,6 +128,37 @@ class TestDiskInfo:
         )
 
         assert disk_info.size_gb == 1.0
+
+    def test_smart_info_parsing(self) -> None:
+        """Test parsing SmartInfo with different date formats."""
+        xml_str = """
+        <smart>
+            <test>Long</test>
+            <result>Pass [2023/05/15 12:30:45]</result>
+            <percent>100</percent>
+        </smart>
+        """
+        xml_element = ET.fromstring(xml_str)
+        smart_info = SmartInfo.from_xml(xml_element)
+        
+        assert smart_info.test_type == "Long"
+        assert smart_info.result == "Pass"
+        assert smart_info.percent == 100
+        assert smart_info.last_test_date == datetime(2023, 5, 15, 12, 30, 45)
+        
+        # Test with invalid date format
+        xml_str = """
+        <smart>
+            <test>Short</test>
+            <result>Pass [Invalid Date]</result>
+            <percent>90</percent>
+        </smart>
+        """
+        xml_element = ET.fromstring(xml_str)
+        smart_info = SmartInfo.from_xml(xml_element)
+        
+        assert smart_info.result == "Pass [Invalid Date]"
+        assert smart_info.last_test_date is None
 
 
 class TestSystemInfo:

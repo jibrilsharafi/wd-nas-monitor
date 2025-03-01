@@ -1,26 +1,17 @@
-"""Custom exceptions for WD NAS Monitor."""
+"""Exceptions for WD NAS Monitor."""
 
 
-class WDNasException(Exception):
-    """Base exception for all WD NAS related errors."""
-    pass
+class WDNasError(Exception):
+    """Base exception for WD NAS Monitor."""
 
 
-class AuthenticationError(WDNasException):
-    """Raised when authentication with the NAS fails."""
-    pass
+class ConnectionError(WDNasError):
+    """Raised when connection to the NAS fails."""
 
 
-class ConnectionError(WDNasException):
-    """Raised when there's an error connecting to the NAS."""
-    pass
+class AuthenticationError(WDNasError):
+    """Raised when authentication fails."""
 
 
-class ParseError(WDNasException):
-    """Raised when there's an error parsing data from the NAS."""
-    pass
-
-
-class DeviceError(WDNasException):
-    """Raised for device-specific errors."""
-    pass
+class ParseError(WDNasError):
+    """Raised when parsing a response fails."""
