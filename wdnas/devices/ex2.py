@@ -1,191 +1,183 @@
 """Implementation for WD My Cloud EX2 Ultra."""
 
-import re
-import xml.etree.ElementTree as ET
-from typing import Any, Dict, List, Optional
+from typing import List
 
-from ..exceptions import ParseError
-from ..models.system import SystemInfo
+from ..models.disk import DiskInfo, SmartAttribute, SmartInfo
+from ..models.system import SystemInfo, RaidInfo, VolumeInfo, LogEntry
 from .base import WDNasDevice
+from datetime import datetime
 
 
 class EX2UltraDevice(WDNasDevice):
     """Implementation for WD My Cloud EX2 Ultra."""
 
+    def get_all_data(self) -> None:
+        """Get all data from the device."""
+        self.all_data = self.client.get_all_data()
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+
     def get_system_info(self) -> SystemInfo:
-        """Get system information for EX2 Ultra.
+        """Get system information.
 
         Returns:
             SystemInfo: System information for the device
+
+        Raises:
+            NotImplementedError: If the subclass doesn't implement this method
         """
-        # Get the system information from the sysinfo.xml endpoint
-        xml_root = self.client.get_system_info()
+        raids = [
+            RaidInfo(
+                id=int(raid["id"]),
+                level=raid["level"],
+                chunk_size=int(raid["chunk_size"]),
+                num_of_total_disks=int(raid["num_of_total_disks"]),
+                num_of_raid_disks=int(raid["num_of_raid_disks"]),
+                num_of_active_disks=int(raid["num_of_active_disks"]),
+                num_of_working_disks=int(raid["num_of_working_disks"]),
+                num_of_spare_disks=int(raid["num_of_spare_disks"]),
+                num_of_failed_disks=int(raid["num_of_failed_disks"]),
+                raid_disks=raid["raid_disks"],
+                spare_disks=raid["spare_disks"],
+                failed_disks=raid["failed_disks"],
+                rebuilding_disks=raid["rebuilding_disks"],
+                size=int(raid["size"]),
+                used_size=int(raid["used_size"]),
+                min_req_size=int(raid["min_req_size"]),
+                state=raid["state"],
+                state_detail=raid["state_detail"],
+                uuid=raid["uuid"],
+                dev=raid["dev"],
+                ar=int(raid["ar"]),
+                expand_size=int(raid["expand_size"]),
+                expand_no_replace=int(raid["expand_no_replace"]),
+                migrate_from=raid["migrate_from"],
+                migrate_to=raid["migrate_to"],
+                recover_failed=int(raid["recover_failed"]),
+                reshape_failed=int(raid["reshape_failed"]),
+                dirty=int(raid["dirty"]),
+            )
+            for raid in self.all_data["system_status"]["config"]["raids"]["raid"]
+        ]
 
-        # EX2Ultra has a different XML format than the generic one
-        # So we create a custom method to extract data
-        return self._parse_system_info(xml_root)
+        volumes = [
+            VolumeInfo(
+                id=int(volume["num"]),
+                name=volume["name"],
+                label=volume["label"],
+                mount_point=volume["mount_point"],
+                encrypted=volume["encrypted"] == "true",
+                device_path=volume["device_path"],
+                unlocked=volume["unlocked"] == "true",
+                mounted=volume["mounted"] == "true",
+                size=int(volume["size"]),
+                uuid=volume["uuid"],
+                roaming=volume["roaming"] == "true",
+                used_size=int(volume["used_size"]),
+                raid_level=volume["raid_level"],
+                raid_state=volume["raid_state"],
+                raid_state_detail=volume["raid_state_detail"],
+                state=volume["state"],
+            )
+            for volume in self.all_data["system_status"]["config"]["vols"]["vol"]
+        ]
 
-    def _parse_system_info(self, xml_root: ET.Element) -> SystemInfo:
-        """Parse system information from EX2 Ultra's specific XML format.
-
-        Args:
-            xml_root: XML root element
-
-        Returns:
-            SystemInfo: System information object
-        """
-
-        # Handle potentially missing elements safely
-        def get_text(xpath: str, default: str = "") -> str:
-            element = xml_root.find(xpath)
-            return element.text if element is not None and element.text is not None else default
-
-        # Extract firmware version from the XML
-        firmware_version = get_text(".//firmware_version", "Unknown")
-
-        # Parse uptime - the format might be different from what we expected
-        uptime_text = get_text(".//uptime", "0")
-        uptime_seconds = self._parse_uptime(uptime_text)
-
-        # Extract memory information
-        mem_info = xml_root.find(".//memory")
-        memory_total = 0
-        memory_used = 0
-
-        if mem_info is not None:
-            try:
-                memory_total = int(get_text(".//memory/total", "0"))
-                memory_used = int(get_text(".//memory/used", "0"))
-            except (ValueError, TypeError):
-                pass
-
-        # Extract CPU usage
-        cpu_usage = 0.0
-        cpu_text = get_text(".//cpu_usage", "0")
-        try:
-            # Remove any '%' character and convert to float
-            cpu_usage = float(cpu_text.replace("%", ""))
-        except (ValueError, TypeError):
-            pass
-
-        # Extract temperature
-        temp = None
-        temp_text = get_text(".//temperature", "")
-        if temp_text:
-            try:
-                temp = int(temp_text)
-            except (ValueError, TypeError):
-                pass
+        logs = [
+            LogEntry(
+                timestamp=log["cell"][1],
+                level=log["cell"][0],
+                service=log["cell"][2],
+                message=log["cell"][3],
+            )
+            for log in self.all_data["system_logs"]["rows"]
+        ]
 
         return SystemInfo(
-            model="WD My Cloud EX2 Ultra",
-            name=get_text(".//name", "EX2Ultra"),
-            firmware_version=firmware_version,
-            serial_number=get_text(".//serial", "Unknown"),
-            cpu_usage=cpu_usage,
-            memory_total=memory_total,
-            memory_used=memory_used,
-            uptime_seconds=uptime_seconds,
-            temperature=temp,
+            serial_number=self.all_data["device_info"]["serial_number"],
+            name=self.all_data["device_info"]["name"],
+            workgroup=self.all_data["device_info"]["workgroup"],
+            description=self.all_data["device_info"]["description"],
+            firmware_version=self.all_data["firmware_version"]["fw"],
+            oled=self.all_data["firmware_version"]["oled"],
+            fan_speed=int(self.all_data["home_info"]["fan"]),
+            lan_r_speed=int(self.all_data["system_status"]["lan_r_speed"]),
+            lan_t_speed=int(self.all_data["system_status"]["lan_t_speed"]),
+            lan2_r_speed=int(self.all_data["system_status"]["lan2_r_speed"]),
+            lan2_t_speed=int(self.all_data["system_status"]["lan2_t_speed"]),
+            memory_total=int(self.all_data["system_status"]["mem_total"]),
+            memory_free=int(self.all_data["system_status"]["mem_free"]),
+            memory_buffers=int(self.all_data["system_status"]["buffers"]),
+            memory_cached=int(self.all_data["system_status"]["cached"]),
+            cpu_usage=float(int(self.all_data["system_status"]["cpu"].replace("%", "")) / 100.0),
+            raids=raids,
+            volumes=volumes,
+            logs=logs,
         )
 
-    def _parse_uptime(self, uptime_text: str) -> int:
-        """Parse uptime string into seconds.
-
-        Args:
-            uptime_text: Uptime text from the API
+    def get_disks(self) -> List[DiskInfo]:
+        """Get information about all disks.
 
         Returns:
-            int: Uptime in seconds
+            List[DiskInfo]: List of disk information objects
         """
-        try:
-            # Try direct conversion first
-            return int(uptime_text)
-        except (ValueError, TypeError):
-            pass
 
-        # Try parsing "X days, HH:MM:SS" format
-        try:
-            if "days" in uptime_text:
-                days_part, time_part = uptime_text.split(",", 1)
-                days_match = re.search(r"(\d+)", days_part)
-                if days_match is None:
-                    return 0
-                days = int(days_match.group(1))
+        disks: List[DiskInfo] = []
 
-                # Handle HH:MM:SS format
-                time_parts = time_part.strip().split(":")
-                if len(time_parts) == 3:
-                    hours, minutes, seconds = map(int, time_parts)
-                    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+        for disk_name, disk_smart_data in self.all_data["disks_smart_info"].items():
 
-            # Handle raw "HH:MM:SS" format without days
-            time_parts = uptime_text.strip().split(":")
-            if len(time_parts) == 3:
-                hours, minutes, seconds = map(int, time_parts)
-                return hours * 3600 + minutes * 60 + seconds
-        except (ValueError, AttributeError, IndexError):
-            pass
+            disk_from_system = self.all_data["system_info"]["config"]["disks"]["disk"]
+            disk_from_system = next(
+                (disk for disk in disk_from_system if disk["name"] == disk_name), None
+            )
+            if not disk_from_system:
+                raise ValueError(f"Disk {disk_name} not found in system info")
 
-        # Default to 0 if we can't parse it
-        return 0
+            smart_attributes = [
+                SmartAttribute(
+                    id=int(attr["id"]),
+                    name=attr["name"],
+                    value=int(attr["value"]),
+                    worst=int(attr["worst"]),
+                    threshold=int(attr["threshold"]),
+                )
+                for attr in disk_smart_data["attributes"]
+            ]
 
-    def get_firmware_version(self) -> str:
-        """Get the firmware version.
+            # Example: <result>Pass [2025/02/28 02:07:22]</result>
+            result = disk_from_system["smart"]["result"].split(" ")[0]
+            date_str = (
+                disk_from_system["smart"]["result"].split("[")[1].split("]")[0].strip()
+            )
 
-        Returns:
-            str: The firmware version
-        """
-        # Use the specific firmware API endpoint
-        xml_root = self.client.get_firmware_version()
-        version = xml_root.find(".//version")
-        return version.text if version is not None and version.text is not None else "Unknown"
+            smart_info = SmartInfo(
+                result=result,
+                test_type=disk_from_system["smart"]["test_type"],
+                date=datetime.strptime(date_str, "%Y/%m/%d %H:%M:%S"),
+                percent=float(int(disk_smart_data["percent"]) / 100),
+                attributes=smart_attributes,
+            )
 
-    def get_storage_usage(self) -> Dict[str, float]:
-        """Get storage usage information.
-
-        Returns:
-            Dict[str, float]: Dictionary with total, used and free space in GB
-        """
-        # Extract storage usage from home information
-        xml_root = self.client.get_home_info()
-
-        try:
-            # Find the volume information
-            volume = xml_root.find(".//volume")
-            if volume is None:
-                raise ParseError("Volume information not found")
-
-            # Extract capacity information
-            capacity = volume.find(".//capacity")
-            used = volume.find(".//used")
-
-            if capacity is None or capacity.text is None or used is None or used.text is None:
-                raise ParseError("Capacity or used information not found")
-
-            total_bytes = int(capacity.text)
-            used_bytes = int(used.text)
-            free_bytes = total_bytes - used_bytes
-
-            # Convert to GB
-            bytes_to_gb = lambda b: b / (1024**3)
-
-            return {
-                "total_gb": bytes_to_gb(total_bytes),
-                "used_gb": bytes_to_gb(used_bytes),
-                "free_gb": bytes_to_gb(free_bytes),
-                "usage_percent": (used_bytes / total_bytes * 100) if total_bytes > 0 else 0,
-            }
-        except (AttributeError, TypeError, ValueError) as e:
-            raise ParseError(f"Failed to parse storage usage: {str(e)}")
-
-    def get_disk_smart_details(self, disk_id: str) -> Dict[str, Any]:
-        """Get detailed SMART information for a disk.
-
-        Args:
-            disk_id: The disk ID (e.g., 'sda', 'sdb')
-
-        Returns:
-            Dict: Detailed SMART information
-        """
-        return self.client.get_disk_smart_info(disk_id)
+            disks.append(
+                DiskInfo(
+                    name=disk_name,
+                    scsi_path=disk_from_system["scsi_path"],
+                    connected=disk_from_system["connected"] == "1",
+                    vendor=disk_from_system["vendor"],
+                    model=disk_from_system["model"],
+                    revision=disk_from_system["revision"],
+                    serial=disk_from_system["serial"],
+                    device_path=disk_from_system["device_path"],
+                    size_bytes=int(disk_from_system["size"]),
+                    partition_count=int(disk_from_system["partition_count"]),
+                    allowed=disk_from_system["allowed"] == "1",
+                    raid_uuid=disk_from_system["raid_uuid"],
+                    failed=disk_from_system["failed"] == "1",
+                    healthy=disk_from_system["healthy"] == "1",
+                    removable=disk_from_system["removable"] == "1",
+                    roaming=disk_from_system["roaming"],
+                    smart_info=smart_info,
+                    temperature=int(disk_from_system["temperature"]),
+                    over_temp=disk_from_system["over_temp"] == "1",
+                    sleep=disk_from_system["sleep"] == "1",
+                )
+            )
+        return disks

@@ -16,7 +16,7 @@ class TestSystemInfo:
         # Verify we got a valid SystemInfo object
         assert isinstance(system_info, SystemInfo)
         assert system_info.model != "Unknown"
-        assert system_info.name != "Unknown"
+        assert system_info.description != "Unknown"
         assert system_info.firmware_version != "Unknown"
 
         # Check that computed properties work

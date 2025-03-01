@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<device_info>
+    <serial_number>WNAN30161898</serial_number>
+    <name>MyCloudEX2Ultra</name>
+    <workgroup>WORKGROUP</workgroup>
+    <description>2-Bay NAS</description>
+    <lmb>0</lmb>
+    <smb2>5</smb2>
+    <smb>1</smb>
+    <ntlmv1_auth>-1</ntlmv1_auth>
+    <ssh>0</ssh>
+    <rsync>0</rsync>
+</device_info>

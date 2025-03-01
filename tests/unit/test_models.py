@@ -1,239 +1,176 @@
 """Unit tests for data models."""
 
-import xml.etree.ElementTree as ET
 from datetime import datetime
 
 import pytest
 
-from wdnas.models.disk import DiskInfo, SmartInfo
-from wdnas.models.system import SystemInfo
+from wdnas.models.disk import DiskInfo, SmartAttribute, SmartInfo
+from wdnas.models.system import LogEntry, RaidInfo, SystemInfo, VolumeInfo
 
 
 class TestDiskInfo:
     """Tests for DiskInfo model."""
 
-    def test_from_xml_with_complete_data(self) -> None:
-        """Test parsing disk info from complete XML."""
-        xml_str = """
-        <disk id="sda">
-            <name>Disk 1</name>
-            <vendor>WDC</vendor>
-            <model>WD10EFRX-68FYTN0</model>
-            <sn>WD-XYZ123456789</sn>
-            <size>1000000000000</size>
-            <temp>40</temp>
-            <healthy>1</healthy>
-            <smart>
-                <test>Short</test>
-                <result>Pass [2023/05/15 12:30:45]</result>
-                <percent>100</percent>
-            </smart>
-            <scsi_path>/dev/scsi/host0/bus0/target0/lun0</scsi_path>
-            <connected>1</connected>
-            <rev>1.0</rev>
-            <dev>/dev/sda</dev>
-            <part_cnt>2</part_cnt>
-            <allowed>1</allowed>
-            <raid_uuid>12345678-abcd-ef12-3456-789abcdef123</raid_uuid>
-            <failed>0</failed>
-            <removable>0</removable>
-            <roaming>no</roaming>
-            <over_temp>0</over_temp>
-            <sleep>0</sleep>
-        </disk>
-        """
-        xml_element = ET.fromstring(xml_str)
-        disk_info = DiskInfo.from_xml(xml_element)
-
-        assert disk_info.id == "sda"
-        assert disk_info.name == "Disk 1"
-        assert disk_info.vendor == "WDC"
-        assert disk_info.model == "WD10EFRX-68FYTN0"
-        assert disk_info.serial == "WD-XYZ123456789"
-        assert disk_info.size_bytes == 1000000000000
-        assert disk_info.temperature == 40
-        assert disk_info.healthy is True
-        assert disk_info.smart_status == "Pass"
-        
-        # New field assertions
-        assert disk_info.scsi_path == "/dev/scsi/host0/bus0/target0/lun0"
-        assert disk_info.connected is True
-        assert disk_info.revision == "1.0"
-        assert disk_info.device_path == "/dev/sda"
-        assert disk_info.partition_count == 2
-        assert disk_info.allowed is True
-        assert disk_info.raid_uuid == "12345678-abcd-ef12-3456-789abcdef123"
-        assert disk_info.failed is False
-        assert disk_info.removable is False
-        assert disk_info.roaming == "no"
-        assert disk_info.over_temp is False
-        assert disk_info.sleep is False
-        
-        # Smart info assertions
-        assert disk_info.smart_info is not None
-        assert disk_info.smart_info.test_type == "Short"
-        assert disk_info.smart_info.result == "Pass"
-        assert disk_info.smart_info.percent == 100
-        assert disk_info.smart_info.last_test_date == datetime(2023, 5, 15, 12, 30, 45)
-
-    def test_from_xml_with_missing_data(self) -> None:
-        """Test parsing disk info from incomplete XML."""
-        xml_str = """
-        <disk id="sda">
-            <name>Disk 1</name>
-            <model>WD10EFRX-68FYTN0</model>
-            <size>1000000000000</size>
-        </disk>
-        """
-        xml_element = ET.fromstring(xml_str)
-        disk_info = DiskInfo.from_xml(xml_element)
-
-        assert disk_info.id == "sda"
-        assert disk_info.name == "Disk 1"
-        assert disk_info.vendor == "Unknown"
-        assert disk_info.model == "WD10EFRX-68FYTN0"
-        assert disk_info.serial == "Unknown"
-        assert disk_info.size_bytes == 1000000000000
-        assert disk_info.temperature == 0
-        assert disk_info.healthy is False
-        assert disk_info.smart_status == "Unknown"
-        
-        # Default values for new fields
-        assert disk_info.scsi_path == ""
-        assert disk_info.connected is False
-        assert disk_info.revision == ""
-        assert disk_info.device_path == ""
-        assert disk_info.partition_count == 0
-        assert disk_info.allowed is False
-        assert disk_info.raid_uuid == ""
-        assert disk_info.failed is False
-        assert disk_info.removable is False
-        assert disk_info.roaming == ""
-        assert disk_info.over_temp is False
-        assert disk_info.sleep is False
-        assert disk_info.smart_info is None
-
     def test_size_gb_property(self) -> None:
         """Test size_gb property calculation."""
+        # Create a disk with 2 GB size
         disk_info = DiskInfo(
-            id="sda",
-            name="Disk 1",
+            name="sda",
+            scsi_path="/dev/scsi/host0/bus0/target0/lun0",
+            connected=True,
             vendor="WDC",
-            model="Test",
-            serial="123",
-            size_bytes=1073741824,  # 1 GB
-            temperature=40,
+            model="WD10EFRX-68FYTN0",
+            revision="1.0",
+            serial="WD-XYZ123456789",
+            device_path="/dev/sda",
+            size_bytes=2147483648,  # 2 GB
+            partition_count=2,
+            allowed=True,
+            raid_uuid="12345678-abcd-ef12-3456-789abcdef123",
+            failed=False,
             healthy=True,
-            smart_status="PASS",
+            removable=False,
+            roaming="no",
+            smart_info=None,
+            temperature=40,
+            over_temp=False,
+            sleep=False,
         )
 
-        assert disk_info.size_gb == 1.0
+        assert disk_info.size_gb == 2.0
 
-    def test_smart_info_parsing(self) -> None:
-        """Test parsing SmartInfo with different date formats."""
-        xml_str = """
-        <smart>
-            <test>Long</test>
-            <result>Pass [2023/05/15 12:30:45]</result>
-            <percent>100</percent>
-        </smart>
-        """
-        xml_element = ET.fromstring(xml_str)
-        smart_info = SmartInfo.from_xml(xml_element)
-        
-        assert smart_info.test_type == "Long"
+    def test_smart_info(self) -> None:
+        """Test SmartInfo and SmartAttribute classes."""
+        attributes = [
+            SmartAttribute(id=1, name="Raw Read Error Rate", value=100, worst=100, threshold=16),
+            SmartAttribute(
+                id=5, name="Reallocated Sectors Count", value=100, worst=100, threshold=10
+            ),
+        ]
+
+        smart_info = SmartInfo(
+            result="Pass",
+            test_type="Short",
+            date=datetime(2023, 5, 15, 12, 30, 45),
+            percent=0.95,
+            attributes=attributes,
+        )
+
         assert smart_info.result == "Pass"
-        assert smart_info.percent == 100
-        assert smart_info.last_test_date == datetime(2023, 5, 15, 12, 30, 45)
-        
-        # Test with invalid date format
-        xml_str = """
-        <smart>
-            <test>Short</test>
-            <result>Pass [Invalid Date]</result>
-            <percent>90</percent>
-        </smart>
-        """
-        xml_element = ET.fromstring(xml_str)
-        smart_info = SmartInfo.from_xml(xml_element)
-        
-        assert smart_info.result == "Pass [Invalid Date]"
-        assert smart_info.last_test_date is None
+        assert smart_info.test_type == "Short"
+        assert smart_info.date == datetime(2023, 5, 15, 12, 30, 45)
+        assert smart_info.percent == 0.95
+        assert len(smart_info.attributes) == 2
+        assert smart_info.attributes[0].id == 1
+        assert smart_info.attributes[0].name == "Raw Read Error Rate"
 
 
 class TestSystemInfo:
     """Tests for SystemInfo model."""
 
-    def test_from_xml_with_complete_data(self) -> None:
-        """Test parsing system info from complete XML."""
-        xml_str = """
-        <system>
-            <model>WD My Cloud EX2 Ultra</model>
-            <name>MyNAS</name>
-            <firmware>
-                <version>2.31.204</version>
-            </firmware>
-            <serial_number>WD1234567890</serial_number>
-            <cpu_usage>25</cpu_usage>
-            <memory>
-                <total>512000000</total>
-                <used>256000000</used>
-            </memory>
-            <uptime>1 days, 12:34:56</uptime>
-            <temperature>42</temperature>
-        </system>
-        """
-        xml_element = ET.fromstring(xml_str)
-        system_info = SystemInfo.from_xml(xml_element)
-
-        assert system_info.model == "WD My Cloud EX2 Ultra"
-        assert system_info.name == "MyNAS"
-        assert system_info.firmware_version == "2.31.204"
-        assert system_info.serial_number == "WD1234567890"
-        assert system_info.cpu_usage == 25.0
-        assert system_info.memory_total == 512000000
-        assert system_info.memory_used == 256000000
-        assert system_info.temperature == 42
-        # Uptime should be 1 day (86400s) + 12 hours (43200s) + 34 minutes (2040s) + 56 seconds = 131696 seconds
-        assert system_info.uptime_seconds == 131696
-
-    def test_from_xml_with_missing_data(self) -> None:
-        """Test parsing system info from incomplete XML."""
-        xml_str = """
-        <system>
-            <model>WD My Cloud EX2 Ultra</model>
-            <name>MyNAS</name>
-        </system>
-        """
-        xml_element = ET.fromstring(xml_str)
-        system_info = SystemInfo.from_xml(xml_element)
-
-        assert system_info.model == "WD My Cloud EX2 Ultra"
-        assert system_info.name == "MyNAS"
-        assert system_info.firmware_version == "Unknown"
-        assert system_info.serial_number == "Unknown"
-        assert system_info.cpu_usage == 0.0
-        assert system_info.memory_total == 0
-        assert system_info.memory_used == 0
-        assert system_info.uptime_seconds == 0
-        assert system_info.temperature is None
-
     def test_memory_usage_percent_property(self) -> None:
         """Test memory_usage_percent property calculation."""
+        # Create minimal SystemInfo with memory settings
         system_info = SystemInfo(
-            model="Test",
-            name="Test",
-            firmware_version="1.0",
-            serial_number="123",
-            cpu_usage=50.0,
+            serial_number="WD-1234",
+            name="MyNAS",
+            workgroup="WORKGROUP",
+            description="Test NAS",
+            firmware_version="2.31.204",
+            oled="1.0",
+            fan_speed=4000,
+            lan_r_speed=1000,
+            lan_t_speed=1000,
+            lan2_r_speed=0,
+            lan2_t_speed=0,
             memory_total=1000,
-            memory_used=250,
-            uptime_seconds=3600,
-            temperature=40,
+            memory_free=250,
+            memory_buffers=50,
+            memory_cached=200,
+            cpu_usage=25.5,
+            raids=[],
+            volumes=[],
+            logs=[],
         )
 
-        assert system_info.memory_usage_percent == 25.0
+        # Memory usage should be (total - free) / total = (1000 - 250) / 1000 = 0.75 = 75%
+        assert system_info.memory_usage_percent == 75.0
 
         # Test with zero total memory (should not raise division by zero)
         system_info.memory_total = 0
         assert system_info.memory_usage_percent == 0.0
+
+    def test_raid_volume_log_structures(self) -> None:
+        """Test the structures of RaidInfo, VolumeInfo, and LogEntry."""
+        # Create a RaidInfo instance
+        raid = RaidInfo(
+            id=1,
+            level="raid1",
+            chunk_size=512,
+            num_of_total_disks=2,
+            num_of_raid_disks=2,
+            num_of_active_disks=2,
+            num_of_working_disks=2,
+            num_of_spare_disks=0,
+            num_of_failed_disks=0,
+            raid_disks="sda, sdb",
+            spare_disks="",
+            failed_disks="",
+            rebuilding_disks="",
+            size=1000000000,
+            used_size=500000000,
+            min_req_size=1000000000,
+            state="clean",
+            state_detail="",
+            uuid="12345678-abcd-ef12-3456-789abcdef123",
+            dev="md0",
+            ar=0,
+            expand_size=0,
+            expand_no_replace=0,
+            migrate_from="",
+            migrate_to="",
+            recover_failed=0,
+            reshape_failed=0,
+            dirty=0,
+        )
+
+        # Create a VolumeInfo instance
+        volume = VolumeInfo(
+            id=1,
+            name="Volume_1",
+            label="NAS_Volume",
+            mount_point="/mnt/HD/HD_a2",
+            encrypted=False,
+            device_path="/dev/md0",
+            unlocked=True,
+            mounted=True,
+            size=1000000000,
+            uuid="12345678-abcd-ef12-3456-789abcdef123",
+            roaming=False,
+            used_size=500000000,
+            raid_level="raid1",
+            raid_state="clean",
+            raid_state_detail="",
+            state="normal",
+        )
+
+        # Create a LogEntry instance
+        log = LogEntry(
+            timestamp="2023-05-15 12:30:45",
+            level="INFO",
+            service="system",
+            message="System started",
+        )
+
+        # Check that all attributes are correctly stored
+        assert raid.level == "raid1"
+        assert raid.num_of_raid_disks == 2
+        assert raid.state == "clean"
+
+        assert volume.name == "Volume_1"
+        assert volume.mount_point == "/mnt/HD/HD_a2"
+        assert volume.encrypted is False
+
+        assert log.timestamp == "2023-05-15 12:30:45"
+        assert log.level == "INFO"
+        assert log.message == "System started"

@@ -35,4 +35,4 @@ class WDNasDevice:
         Returns:
             List[DiskInfo]: List of disk information objects
         """
-        return self.client.get_disks()
+        raise NotImplementedError("Subclasses must implement this")

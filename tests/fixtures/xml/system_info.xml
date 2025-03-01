@@ -1,22 +1,204 @@
-<system>
-    <name>MyNAS</name>
-    <model>WD My Cloud EX2 Ultra</model>
-    <firmware_version>2.31.204</firmware_version>
-    <serial>WD1234567890</serial>
-    <cpu_usage>25</cpu_usage>
-    <memory>
-        <total>512000000</total>
-        <used>256000000</used>
-    </memory>
-    <uptime>1 days, 12:34:56</uptime>
-    <temperature>42</temperature>
-    <network>
-        <eth0>
-            <ipaddr>192.168.1.100</ipaddr>
-            <netmask>255.255.255.0</netmask>
-            <gateway>192.168.1.1</gateway>
-            <mac_addr>00:11:22:33:44:55</mac_addr>
-            <status>Connected</status>
-        </eth0>
-    </network>
-</system>
+<config>
+	<disks>
+		<disk id="1">
+			<name>sda</name>
+			<scsi_path>/sys/bus/scsi/devices/0:0:0:0</scsi_path>
+			<connected>1</connected>
+			<vendor>Seagate</vendor>
+			<model>ST2000DM008-2FR102</model>
+			<rev>0001</rev>
+			<sn>ZK306BXT</sn>
+			<dev>/dev/sda</dev>
+			<size>2000398934016</size>
+			<part_cnt>4</part_cnt>
+			<allowed>1</allowed>
+			<raid_uuid>8667885e:7f225792:9956712d:5c352a7b</raid_uuid>
+			<failed>0</failed>
+			<healthy>1</healthy>
+			<removable>1</removable>
+			<roaming></roaming>
+			<smart>
+				<test>long</test>
+				<result>Pass [2025/02/28 04:04:26]</result>
+				<percent>100</percent>
+			</smart>
+			<temp>52</temp>
+			<over_temp>0</over_temp>
+			<sleep>0</sleep>
+		</disk>
+		<disk id="2">
+			<name>sdb</name>
+			<scsi_path>/sys/bus/scsi/devices/1:0:0:0</scsi_path>
+			<connected>1</connected>
+			<vendor>Seagate</vendor>
+			<model>ST1000DM003-9YN162</model>
+			<rev>HP16</rev>
+			<sn>S1D77LVC</sn>
+			<dev>/dev/sdb</dev>
+			<size>1000204886016</size>
+			<part_cnt>4</part_cnt>
+			<allowed>1</allowed>
+			<raid_uuid>8667885e:7f225792:9956712d:5c352a7b</raid_uuid>
+			<failed>0</failed>
+			<healthy>1</healthy>
+			<removable>1</removable>
+			<roaming></roaming>
+			<smart>
+				<test>long</test>
+				<result>Pass [2025/02/28 02:07:22]</result>
+				<percent>100</percent>
+			</smart>
+			<temp>52</temp>
+			<over_temp>0</over_temp>
+			<sleep>0</sleep>
+		</disk>
+		<count>2</count>
+	</disks>
+	<update>
+		<disk_healthy>0</disk_healthy>
+	</update>
+	<raids>
+		<dirty>0</dirty>
+		<cfg_mnts>all,/mnt/HD_a4,/mnt/HD_b4;cfe2bcc2:23854f47:bbf0cd2d:69ad4b24,/mnt/HD_a4,/mnt/HD_b4;8667885e:7f225792:9956712d:5c352a7b,/mnt/HD_a4,/mnt/HD_b4;</cfg_mnts>
+		<raid id="1">
+			<id>0</id>
+			<level>raid1</level>
+			<chunk_size>0</chunk_size>
+			<num_of_total_disks>2</num_of_total_disks>
+			<num_of_raid_disks>2</num_of_raid_disks>
+			<num_of_active_disks>2</num_of_active_disks>
+			<num_of_working_disks>2</num_of_working_disks>
+			<num_of_spare_disks>0</num_of_spare_disks>
+			<num_of_failed_disks>0</num_of_failed_disks>
+			<raid_disks>sda sdb</raid_disks>
+			<spare_disks></spare_disks>
+			<failed_disks></failed_disks>
+			<rebuilding_disks></rebuilding_disks>
+			<size>2144337920</size>
+			<used_size>2144337920</used_size>
+			<min_req_size>999131359232</min_req_size>
+			<state>clean</state>
+			<state_detail></state_detail>
+			<uuid>2a930bc6:7ff77a01:d370a06d:7343ef24</uuid>
+			<dev>/dev/md0</dev>
+			<ar>0</ar>
+			<expand_size>0</expand_size>
+			<expand_no_replace>0</expand_no_replace>
+			<migrate_from></migrate_from>
+			<migrate_to></migrate_to>
+			<recover_failed>0</recover_failed>
+			<reshape_failed>0</reshape_failed>
+			<dirty>0</dirty>
+			<rebuilding_disks_></rebuilding_disks_>
+		</raid>
+		<raid id="2">
+			<id>1</id>
+			<level>raid1</level>
+			<chunk_size>0</chunk_size>
+			<num_of_total_disks>2</num_of_total_disks>
+			<num_of_raid_disks>2</num_of_raid_disks>
+			<num_of_active_disks>2</num_of_active_disks>
+			<num_of_working_disks>2</num_of_working_disks>
+			<num_of_spare_disks>0</num_of_spare_disks>
+			<num_of_failed_disks>0</num_of_failed_disks>
+			<raid_disks>sda sdb</raid_disks>
+			<spare_disks></spare_disks>
+			<failed_disks></failed_disks>
+			<rebuilding_disks></rebuilding_disks>
+			<size>995907928064</size>
+			<used_size>995907928064</used_size>
+			<min_req_size>999131359232</min_req_size>
+			<state>clean</state>
+			<state_detail></state_detail>
+			<uuid>8667885e:7f225792:9956712d:5c352a7b</uuid>
+			<dev>/dev/md1</dev>
+			<ar>0</ar>
+			<expand_size>0</expand_size>
+			<expand_no_replace>0</expand_no_replace>
+			<migrate_from></migrate_from>
+			<migrate_to></migrate_to>
+			<recover_failed>0</recover_failed>
+			<reshape_failed>0</reshape_failed>
+			<dirty>0</dirty>
+			<rebuilding_disks_></rebuilding_disks_>
+			<expand_ins></expand_ins>
+		</raid>
+		<raid id="3">
+			<id>2</id>
+			<level>linear</level>
+			<chunk_size>262144</chunk_size>
+			<num_of_total_disks>2</num_of_total_disks>
+			<num_of_raid_disks>2</num_of_raid_disks>
+			<num_of_active_disks>2</num_of_active_disks>
+			<num_of_working_disks>2</num_of_working_disks>
+			<num_of_spare_disks>0</num_of_spare_disks>
+			<num_of_failed_disks>0</num_of_failed_disks>
+			<raid_disks>sda sdb</raid_disks>
+			<spare_disks></spare_disks>
+			<failed_disks></failed_disks>
+			<rebuilding_disks></rebuilding_disks>
+			<size>1002342711296</size>
+			<used_size>1002342711296</used_size>
+			<min_req_size>0</min_req_size>
+			<state>clean</state>
+			<state_detail></state_detail>
+			<uuid>cfe2bcc2:23854f47:bbf0cd2d:69ad4b24</uuid>
+			<dev>/dev/md2</dev>
+			<ar>0</ar>
+			<expand_size>0</expand_size>
+			<expand_no_replace>0</expand_no_replace>
+			<migrate_from></migrate_from>
+			<migrate_to></migrate_to>
+			<recover_failed>0</recover_failed>
+			<reshape_failed>0</reshape_failed>
+			<dirty>0</dirty>
+			<rebuilding_disks_></rebuilding_disks_>
+			<expand_ins></expand_ins>
+		</raid>
+	</raids>
+	<updating>0</updating>
+	<vols>
+		<vol id="1">
+			<num>1</num>
+			<name>Volume_1</name>
+			<label>Volume_1</label>
+			<mnt>/mnt/HD/HD_a2</mnt>
+			<encrypted>0</encrypted>
+			<dev>/dev/md1</dev>
+			<unlocked>1</unlocked>
+			<mounted>1</mounted>
+			<size>979193405440</size>
+			<uuid>8667885e:7f225792:9956712d:5c352a7b</uuid>
+			<roaming>0</roaming>
+			<used_size>790217105408</used_size>
+			<raid_level>raid1</raid_level>
+			<raid_state>clean</raid_state>
+			<raid_state_detail></raid_state_detail>
+			<state></state>
+		</vol>
+		<vol id="2">
+			<num>2</num>
+			<name>Volume_2</name>
+			<label>Volume_2</label>
+			<mnt>/mnt/HD/HD_b2</mnt>
+			<encrypted>0</encrypted>
+			<dev>/dev/md2</dev>
+			<unlocked>1</unlocked>
+			<mounted>1</mounted>
+			<size>985527447552</size>
+			<uuid>cfe2bcc2:23854f47:bbf0cd2d:69ad4b24</uuid>
+			<roaming>0</roaming>
+			<used_size>778247270400</used_size>
+			<raid_level>linear</raid_level>
+			<raid_state>clean</raid_state>
+			<raid_state_detail></raid_state_detail>
+			<state></state>
+		</vol>
+		<total_size>1954928918938</total_size>
+		<total_used_size>1568464379904</total_used_size>
+		<total_unused_size>386464539034</total_unused_size>
+		<total_size_h>1.95 TB</total_size_h>
+		<total_used_size_h>1.57 TB</total_used_size_h>
+		<total_unused_size_h>386 GB</total_unused_size_h>
+	</vols>
+</config>

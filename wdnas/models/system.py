@@ -1,73 +1,104 @@
 """System model for WD NAS devices."""
 
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, List, Optional
+
+
+@dataclass
+class LogEntry:
+    """Log entry for the NAS system."""
+
+    timestamp: str
+    level: str
+    service: str
+    message: str
+
+
+@dataclass
+class VolumeInfo:
+    """Information about a volume in the NAS."""
+
+    id: int
+    name: str
+    label: str
+    mount_point: str
+    encrypted: bool
+    device_path: str
+    unlocked: bool
+    mounted: bool
+    size: int
+    uuid: str
+    roaming: bool
+    used_size: int
+    raid_level: str
+    raid_state: str
+    raid_state_detail: str
+    state: str
+
+
+@dataclass
+class RaidInfo:
+    """RAID information for the NAS system."""
+
+    id: int
+    level: str
+    chunk_size: int
+    num_of_total_disks: int
+    num_of_raid_disks: int
+    num_of_active_disks: int
+    num_of_working_disks: int
+    num_of_spare_disks: int
+    num_of_failed_disks: int
+    raid_disks: str
+    spare_disks: str
+    failed_disks: str
+    rebuilding_disks: str
+    size: int
+    used_size: int
+    min_req_size: int
+    state: str
+    state_detail: str
+    uuid: str
+    dev: str
+    ar: int
+    expand_size: int
+    expand_no_replace: int
+    migrate_from: str
+    migrate_to: str
+    recover_failed: int
+    reshape_failed: int
+    dirty: int
 
 
 @dataclass
 class SystemInfo:
     """Information about the NAS system."""
 
-    model: str
-    name: str
-    firmware_version: str
     serial_number: str
-    cpu_usage: float
+    name: str
+    workgroup: str
+    description: str
+    firmware_version: str
+    oled: str
+    fan_speed: int
+    lan_r_speed: int
+    lan_t_speed: int
+    lan2_r_speed: int
+    lan2_t_speed: int
     memory_total: int
-    memory_used: int
-    uptime_seconds: int
-    temperature: Optional[int] = None
+    memory_free: int
+    memory_buffers: int
+    memory_cached: int
+    cpu_usage: float
+    raids: List[RaidInfo]
+    volumes: List[VolumeInfo]
+    logs: List[LogEntry]
 
     @property
     def memory_usage_percent(self) -> float:
         """Calculate memory usage percentage."""
-        if self.memory_total == 0:
-            return 0.0
-        return (self.memory_used / self.memory_total) * 100
-
-    @classmethod
-    def from_xml(cls, xml_element: ET.Element) -> "SystemInfo":
-        """Parse system info from XML element.
-
-        Args:
-            xml_element: XML element containing system information
-
-        Returns:
-            SystemInfo: Parsed system information object
-        """
-
-        # Handle potentially missing elements safely
-        def get_text(xpath: str, default: str = "") -> str:
-            element = xml_element.find(xpath)
-            return element.text if element is not None and element.text is not None else default
-
-        # Get uptime in seconds from the XML
-        uptime_text = get_text("uptime", "0")
-        try:
-            # Parse uptime which might be in format "XX days, HH:MM:SS" or just seconds
-            if "days" in uptime_text:
-                days_part, time_part = uptime_text.split(",")
-                days = int(days_part.strip().split()[0])
-                hours, minutes, seconds = map(int, time_part.strip().split(":"))
-                uptime_seconds = days * 86400 + hours * 3600 + minutes * 60 + seconds
-            else:
-                uptime_seconds = int(uptime_text)
-        except (ValueError, IndexError):
-            uptime_seconds = 0
-
-        # Try to get temperature, may not be available on all models
-        temp_str = get_text("temperature")
-        temperature = int(temp_str) if temp_str and temp_str.isdigit() else None
-
-        return cls(
-            model=get_text("model", "Unknown"),
-            name=get_text("name", "Unknown"),
-            firmware_version=get_text("firmware/version", "Unknown"),
-            serial_number=get_text("serial_number", "Unknown"),
-            cpu_usage=float(get_text("cpu_usage", "0")),
-            memory_total=int(get_text("memory/total", "0")),
-            memory_used=int(get_text("memory/used", "0")),
-            uptime_seconds=uptime_seconds,
-            temperature=temperature,
+        return (
+            100.0 * (self.memory_total - self.memory_free) / self.memory_total
+            if self.memory_total > 0
+            else 0.0
         )

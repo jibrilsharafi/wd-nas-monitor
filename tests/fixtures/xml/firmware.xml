@@ -1,5 +1,6 @@
-<firmware>
-    <version>2.31.204</version>
-    <build>20200615</build>
-    <release_notes>https://example.com/release_notes</release_notes>
-</firmware>
+<?xml version="1.0" encoding="UTF-8"?>
+<version>
+    <fw>5.30.103</fw>
+    <oled>1.06
+    </oled>
+</version>
